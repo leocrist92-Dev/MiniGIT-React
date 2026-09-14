@@ -30,7 +30,6 @@ function App() {
           <Route path="ramas" element={<CrearRamas />} />
           <Route path="merge" element={<HacerMerge />} />
           <Route path="eliminar" element={<EliminarRepositorio />} />
-          {/* Aquí agregarías el resto de tus rutas */}
         </Route>
       </Routes>
     </BrowserRouter>
