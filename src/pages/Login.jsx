@@ -1,97 +1,165 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+
+import { loginUsuario, solicitarRecuperacion } from '../services/authService';
 
 export default function Login() {
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
+  // Estados para el formulario
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Estados para controlar flujo
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: 'status-info', msg: 'Completa usuario y contraseña para habilitar el acceso.' });
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
-  // Emula la función "sync" de tu app.js
+  // Estados para el modal de recuperación
+  const [recoverModalOpen, setRecoverModalOpen] = useState(false);
+  const [recoverEmail, setRecoverEmail] = useState('usuario@sena.edu.co');
+  const [recoverStatus, setRecoverStatus] = useState({
+    type: 'status-info',
+    message: 'Se enviará un enlace válido por 24 horas.'
+  });
+
+  // Efecto que reacciona a la escritura en el formulario
   useEffect(() => {
-    if (!user.trim() && !pass.trim()) {
+    if (isVerifying || isSuccess) return;
+
+    const uTrim = username.trim();
+    const pTrim = password.trim();
+
+    if (!uTrim && !pTrim) {
       setStatus({ type: 'status-info', msg: 'Completa usuario y contraseña para habilitar el acceso.' });
-    } else if (user.trim() && pass.trim()) {
+    } else if (uTrim && pTrim) {
       setStatus({ type: 'status-info', msg: 'Datos completos. El botón ingresar ya está activo.' });
     } else {
       setStatus({ type: 'status-info', msg: 'Aún faltan campos requeridos.' });
     }
-  }, [user, pass]);
+  }, [username, password, isVerifying, isSuccess]);
 
-  const handleLogin = () => {
-    setLoading(true);
-    setStatus({ type: 'status-info', msg: 'Validando credenciales contra el servicio de autenticación...' }); //[cite: 1]
-    
-    // Emulación del retraso del servidor de 1600ms
-    setTimeout(() => {
-      if (pass === 'ContraseñaIncorrecta') { 
-        setStatus({ type: 'status-error', msg: '✗ Usuario o contraseña inválida.' });
-        setPass('');
-        setLoading(false);
-      } else {
-        setStatus({ type: 'status-success', msg: '✓ Login exitoso. Redirección simulada al panel de repositorios.' }); //[cite: 1]
-        setTimeout(() => navigate('/repos'), 1000); // Redirige programáticamente
-      }
-    }, 1600);
+  const isFormValid = username.trim() !== '' && password.trim() !== '';
+
+  const handleCancel = () => {
+    setUsername('');
+    setPassword('');
   };
 
-  const isBtnDisabled = !user.trim() || !pass.trim() || loading;
+  // Función handleLogin refactorizada usando el servicio externo
+  const handleLogin = async () => {
+    if (isSuccess) {
+      navigate('/repos');
+      return;
+    }
+	setLoading(true);
+
+    setIsVerifying(true);
+    setStatus({
+      type: 'status-info',
+      msg: 'Validando credenciales contra el servicio de autenticación...'
+    });
+
+    try {
+      // Petición al servicio en lugar de usar setTimeout directo en la vista
+      const data = await loginUsuario(username, password);
+
+      // Si la promesa se resuelve con éxito:
+      localStorage.setItem('token', data.token); // Guardamos la sesión simulada
+      setStatus({
+        type: 'status-success',
+        msg: '✓ Login exitoso. Redirección simulada al panel de repositorios.'	
+      });
+	  navigate('/repos')
+      setIsSuccess(true);
+    } catch (error) {
+      // Si la promesa es rechazada (error):
+      setStatus({
+        type: 'status-error',
+        msg: error.message
+      });
+      setPassword('');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleOpenRecover = () => {
+    setRecoverModalOpen(true);
+    setRecoverStatus({ type: 'status-info', message: 'Se enviará un enlace válido por 24 horas.' });
+  };
+
+  const handleSendRecover = async () => {
+    const response = await solicitarRecuperacion(recoverEmail);
+    setRecoverStatus({
+      type: 'status-success',
+      message: response.message
+    });
+  };
+
+  const isBtnDisabled = !username.trim() || !password.trim() || loading;
 
   return (    
-	<main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
-	  <div className="grid xl:grid-cols-[1.2fr] gap-6">
-		<section className="panel-neo p-6 md:p-8">
-		  <div className="max-w-xl mx-auto space-y-5">
-			<div className="text-center">
-			  <div className="mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-violet-500 to-red-500 grid place-items-center text-3xl shadow-2xl">🔐</div>
-			  <h2 className="text-2xl font-black mt-4">Acceso seguro Mini-Git</h2>
+	<div className="grid xl:grid-cols-[1.2fr] gap-6">
+	  <section className="panel-neo p-6 md:p-8">
+		<div className="max-w-xl mx-auto space-y-5">
+		  <div className="text-center">
+			<div className="mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-violet-500 to-red-500 grid place-items-center text-3xl shadow-2xl">🔐</div>
+			<h2 className="text-2xl font-black mt-4">Acceso seguro Mini-Git</h2>
+		  </div>
+
+		  <div className={`status-box show ${status.type}`}>{status.msg}</div>
+
+		  <div className="space-y-4">
+			<label className="block">
+			  <span className="text-sm font-bold tracking-wider text-slate-200 uppercase">Email o usuario</span>
+			  <input
+				className="input-neo mt-2"
+				placeholder="usuario@sena.edu.co"
+				value={username}
+				onChange={(e) => setUsername(e.target.value)}
+				disabled={loading} />
+			</label>
+
+			<label className="block">
+			  <span className="text-sm font-bold tracking-wider text-slate-200 uppercase">Contraseña</span>
+			  <input
+				type="password"
+				className="input-neo mt-2"
+				placeholder="••••••••••••"
+				value={password}
+				onChange={(e) => setPassword(e.target.value)}
+				disabled={loading} />
+			</label>
+
+			<div className="flex flex-wrap gap-3">
+			  <button
+				onClick={handleLogin}
+				className="btn-primary"
+				disabled={isBtnDisabled}
+			  >
+				{loading ? 'Verificando credenciales...' : 'Ingresar'}
+			  </button>
+			  <button
+				onClick={() => { setUsername(''); setPassword(''); } }
+				className="btn-secondary"
+				disabled={loading}
+			  >
+				Cancelar
+			  </button>
 			</div>
-
-			<div className={`status-box show ${status.type}`}>{status.msg}</div>
-
-			<div className="space-y-4">
-			  <label className="block">
-				<span className="text-sm font-bold tracking-wider text-slate-200 uppercase">Email o usuario</span>
-				<input
-				  className="input-neo mt-2"
-				  placeholder="usuario@sena.edu.co"
-				  value={user}
-				  onChange={(e) => setUser(e.target.value)}
-				  disabled={loading} />
-			  </label>
-
-			  <label className="block">
-				<span className="text-sm font-bold tracking-wider text-slate-200 uppercase">Contraseña</span>
-				<input
-				  type="password"
-				  className="input-neo mt-2"
-				  placeholder="••••••••••••"
-				  value={pass}
-				  onChange={(e) => setPass(e.target.value)}
-				  disabled={loading} />
-			  </label>
-
-			  <div className="flex flex-wrap gap-3">
-				<button
-				  onClick={handleLogin}
-				  className="btn-primary"
-				  disabled={isBtnDisabled}
-				>
-				  {loading ? 'Verificando credenciales...' : 'Ingresar'}
-				</button>
-				<button
-				  onClick={() => { setUser(''); setPass(''); } }
-				  className="btn-secondary"
-				  disabled={loading}
-				>
-				  Cancelar
-				</button>
-			  </div>
+			<div className="flex flex-wrap gap-3 text-sm text-slate-300">
+			  <span>¿No tienes cuenta?</span><Link to="/registro" className="badge-chip badge-blue">Registrarse</Link>
+			</div>
+			<div className="flex flex-wrap gap-3 text-sm text-slate-300">
+			  <span>¿Olvidaste tu contraseña?</span><button className="badge-chip badge-red">Recuperar</button>
 			</div>
 		  </div>
-		</section>
-	  </div>
-	</main>
+		</div>
+	  </section>
+	</div>
   );
 }

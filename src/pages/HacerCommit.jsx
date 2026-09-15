@@ -1,37 +1,151 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function HacerCommit() {
-  const [message, setMessage] = useState('');
-  const [branch, setBranch] = useState('main');
-  const [status, setStatus] = useState(null);
+  // Estado para la navegación móvil
+  const [navOpen, setNavOpen] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setStatus({ type: 'status-success', msg: `✓ Commit guardado correctamente en la rama '${branch}'.` });
-    setMessage('');
+  // Estados del formulario y simulación de commit
+  const [commitMsg, setCommitMsg] = useState('Agregar nueva función de saludo para SENA');
+  const [commitDesc, setCommitDesc] = useState('Se agregó nueva línea para saludar SENA y mejorar la experiencia del usuario.');
+  const [showDiff, setShowDiff] = useState(true);
+  const [hasChanges, setHasChanges] = useState(true);
+
+  // Estado del cuadro de notificación (status box)
+  const [status, setStatus] = useState({
+    type: 'status-info',
+    msg: 'Hay cambios detectados. Escribe el mensaje del commit para continuar.'
+  });
+
+  // Alternar visibilidad de las diferencias (diffBox)
+  const handleToggleDiff = () => {
+    setShowDiff((prev) => !prev);
   };
 
+  // Descartar cambios pendientes
+  const handleDiscard = () => {
+    setHasChanges(false);
+    setStatus({
+      type: 'status-error',
+      msg: 'Cambios descartados. Ya no hay archivos pendientes.'
+    });
+  };
+
+  // Guardar el commit
+  const handleSaveCommit = () => {
+    if (!commitMsg.trim() || !hasChanges) return;
+
+    setStatus({
+      type: 'status-success',
+      msg: '✓ Commit guardado exitosamente. Hash: a1b2c3d4e5f6'
+    });
+  };
+
+  const isSaveDisabled = !hasChanges || !commitMsg.trim();
+
   return (
-	<main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
-	  <div className="panel-neo p-6 space-y-5 max-w-2xl mx-auto">
-		<h2 className="text-2xl font-black">Realizar Commit</h2>
-		{status && <div className={`status-box show ${status.type}`}>{status.msg}</div>}
-		<form onSubmit={handleSubmit} className="space-y-4">
-		  <label className="block">
-			<span className="text-sm font-bold uppercase">Rama destino</span>
-			<select className="select-neo mt-2" value={branch} onChange={(e) => setBranch(e.target.value)}>
-			  <option value="main">main</option>
-			  <option value="feature-login">feature-login</option>
-			  <option value="fix-styles">fix-styles</option>
-			</select>
-		  </label>
-		  <label className="block">
-			<span className="text-sm font-bold uppercase">Mensaje de Commit</span>
-			<textarea className="textarea-neo mt-2" rows="3" placeholder="feat: agrega formulario de registro..." value={message} onChange={(e) => setMessage(e.target.value)} required />
-		  </label>
-		  <button type="submit" className="btn-primary w-full">Confirmar y Guardar Commit</button>
-		</form>
-	  </div>
-	</main>
+	<div className="grid xl:grid-cols-[1.2fr] gap-6">
+		<section className="panel-neo p-6 space-y-5">
+		<div className="badge-chip badge-blue">
+			Ruta: /mi-proyecto-python/main.py
+		</div>
+
+		{/* Visualizador de código */}
+		<div className="code-board space-y-1">
+			<div><span className="text-sky-300">1</span> def saludar(nombre):</div>
+			<div><span className="text-sky-300">2</span>     """Función para saludar"""</div>
+			<div><span className="text-sky-300">3</span>     return f"Hola, {'{nombre}'}!"</div>
+			<div><span className="text-sky-300">4</span></div>
+			<div><span className="text-sky-300">5</span> if __name__ == "__main__":</div>
+			<div><span className="text-sky-300">6</span>     print(saludar("Mundo"))</div>
+			{hasChanges && (
+			<div id="newLine">
+				<span className="text-sky-300">7</span>     print(saludar("SENA")) <span className="badge-chip badge-purple">NUEVO</span>
+			</div>
+			)}
+		</div>
+
+		{/* Resumen de cambios en archivos */}
+		<div className="card-3d p-4 text-slate-300">
+			✎ main.py (modificado) · + requirements.txt (nuevo) · - README_OLD.md (eliminado)
+		</div>
+
+		{/* Mensaje de estado */}
+		<div id="commitStatus" className={`status-box show ${status.type}`}>
+			{status.msg}
+		</div>
+
+		{/* Campos de entrada */}
+		<label className="block">
+			<span className="text-sm font-bold uppercase tracking-wider text-slate-200">
+			Mensaje de commit
+			</span>
+			<input
+			id="commitMsg"
+			className="input-neo mt-2"
+			value={commitMsg}
+			onChange={(e) => setCommitMsg(e.target.value)}
+			/>
+		</label>
+
+		<label className="block">
+			<span className="text-sm font-bold uppercase tracking-wider text-slate-200">
+			Descripción detallada
+			</span>
+			<textarea
+			id="commitDesc"
+			className="textarea-neo mt-2"
+			value={commitDesc}
+			onChange={(e) => setCommitDesc(e.target.value)}
+			></textarea>
+		</label>
+
+		{/* Badges con metadatos */}
+		<div className="flex flex-wrap gap-2">
+			<span className="badge-chip">Autor: Juan Pérez</span>
+			<span className="badge-chip">Rama: main</span>
+			<span className="badge-chip">Fecha: 20-12-2025 15:47</span>
+		</div>
+
+		{/* Botones de acción */}
+		<div className="flex flex-wrap gap-3">
+			<button
+			id="toggleDiff"
+			type="button"
+			className="btn-secondary"
+			onClick={handleToggleDiff}
+			>
+			Ocultar / mostrar diferencias
+			</button>
+			<button
+			id="commitSave"
+			type="button"
+			className="btn-primary"
+			disabled={isSaveDisabled}
+			onClick={handleSaveCommit}
+			>
+			Hacer commit
+			</button>
+			<button
+			id="discardBtn"
+			type="button"
+			className="btn-danger"
+			onClick={handleDiscard}
+			>
+			Descartar cambios
+			</button>
+		</div>
+
+		{/* Visualizador de Diff */}
+		<div
+			id="diffBox"
+			className={`card-3d p-5 space-y-2 ${showDiff ? '' : 'hidden-soft'}`}
+		>
+			<div className="diff-del rounded-xl px-3 py-2">- print(saludar("Mundo"))</div>
+			<div className="diff-add rounded-xl px-3 py-2">+ print(saludar("Mundo"))</div>
+			<div className="diff-add rounded-xl px-3 py-2">+ print(saludar("SENA"))</div>
+		</div>
+		</section>
+	</div>
   );
 }
