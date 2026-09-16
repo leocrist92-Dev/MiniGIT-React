@@ -73,8 +73,8 @@ export default function Login() {
         type: 'status-success',
         msg: '✓ Login exitoso. Redirección simulada al panel de repositorios.'	
       });
-	  navigate('/repos')
       setIsSuccess(true);
+      navigate('/repos');
     } catch (error) {
       // Si la promesa es rechazada (error):
       setStatus({

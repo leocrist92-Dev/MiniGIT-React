@@ -1,8 +1,12 @@
 // Registro.jsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+// 1. Importamos la función del servicio de autenticación
+import { registrarUsuario } from '../services/authService';
 
 export default function Registro() {
+  const navigate = useNavigate(); // Hook para redireccionar al usuario
+  
   // Estados para los campos del formulario
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,7 +21,10 @@ export default function Registro() {
     type: 'status-info',
     message: 'Completa todos los campos válidos y acepta los términos para crear la cuenta.'
   });
+
+  // Estado para saber si se está enviando la petición al backend
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false); // Para saber si ya se registró exitosamente
 
   // Estados para los textos de ayuda debajo de los inputs
   const [nameHelp, setNameHelp] = useState('Mínimo 5 caracteres.');
@@ -25,12 +32,13 @@ export default function Registro() {
   const [userHelp, setUserHelp] = useState('3 a 20 caracteres.');
   const [passHelp, setPassHelp] = useState({ label: 'Fortaleza pendiente.', color: 'inherit' });
   const [pass2Help, setPass2Help] = useState('Debe coincidir exactamente.');
-  
+  // Estado que habilita o deshabilita el botón de Registro
   const [isValid, setIsValid] = useState(false);
 
-  // Efecto que emula la función `validate()` de app_7.js
+  // Efecto que valida los campos en tiempo real mientras el usuario escribe
   useEffect(() => {
-    if (isSubmitting) return;
+    // Si ya estamos enviando o ya se registró, no validamos de nuevo
+    if (isSubmitting || isSuccess) return;
 
     // 1. Validación de Nombre
     const nTrim = fullName.trim();
@@ -107,13 +115,55 @@ export default function Registro() {
 
   }, [fullName, email, username, password, confirmPassword, terms, isSubmitting]);
 
-  // Manejadores de botones
-  const handleRegister = () => {
+  // 2. FUNCIÓN DE REGISTRO CON CONEXIÓN AL SERVICIO
+  const handleRegister = async () => {
+    // Si ya fue exitoso, un segundo clic redirige al login
+    if (isSuccess) {
+      navigate('/login');
+      return;
+    }
+
+    // 2.1 Bloqueamos el formulario y mostramos estado de carga
     setIsSubmitting(true);
     setStatus({
-      type: 'status-success',
-      message: '✓ Cuenta creada. Se envió el correo de confirmación.'
+      type: 'status-info',
+      message: 'Registrando tu cuenta en el servidor...'
     });
+
+    try {
+      // 2.2 Agrupamos los datos a enviar
+      const datosUsuario = {
+        fullName,
+        email,
+        username,
+        password,
+        wantsUpdates: updates
+      };
+
+      // 2.3 Hacemos la petición al servicio simulado y ESPERAMOS (await)
+      const response = await registrarUsuario(datosUsuario);
+
+      // 2.4 Si la promesa se resuelve correctamente (éxito)
+      setStatus({
+        type: 'status-success',
+        message: `${response.message} Redirigiendo al inicio de sesión...`
+      });
+      setIsSuccess(true);
+      
+      // Opcional: Redirigir automáticamente después de 2 segundos
+      setTimeout(() => navigate('/login'), 2500);
+
+    } catch (error) {
+      // 2.5 Si la promesa es rechazada (por ejemplo, el correo ya existe en authService)
+      setStatus({
+        type: 'status-error',
+        message: error.message // Mostrará "✗ El correo electrónico ya se encuentra registrado."
+      });
+      setIsSuccess(false);
+    } finally {
+      // 2.6 Pase lo que pase (éxito o error), desbloqueamos el formulario
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {

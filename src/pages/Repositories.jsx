@@ -1,87 +1,63 @@
 // Repositories.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+// 1. Importamos el servicio para interactuar con la fuente de datos de repositorios
+import { obtenerRepositorios } from '../services/repoService';
 
 export default function Repositories() {
+  // Estado para almacenar la lista de repositorios traída desde el servicio
+  const [repos, setRepos] = useState([]);
+
+  // Estados para la carga asíncrona y errores de red
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState({
+    type: 'status-info',
+    message: 'Cargando repositorios desde el servidor...'
+  });
+
   const [navOpen, setNavOpen] = useState(false);
   const [privacyFilter, setPrivacyFilter] = useState('Todos');
+  const [searchTerm, setSearchTerm] = useState('');
   const [repoSearch, setRepoSearch] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
 
-  const reposData = [
-    {
-      id: 'repo-1',
-      name: 'mi-proyecto-python',
-      privacy: 'Público',
-      description: 'Sistema de gestión de usuarios con Python y PostgreSQL',
-      stats: 'Contribuyentes: 2 · Commits: 8 · Ramas: 3 · Hace 1 minuto',
-      commitsCount: 8,
-      branchesCount: 3,
-      updated: 'Hace 1 minuto',
-      langs: [
-        { type: 'py', width: '65%' },
-        { type: 'sql', width: '35%' }
-      ],
-      langText: 'Python 65% · SQL 35% · 2.4 MB',
-      hasActions: true
-    },
-    {
-      id: 'repo-2',
-      name: 'mi-web-frontend',
-      privacy: 'Privado',
-      description: 'Interfaz web moderna con React',
-      stats: 'Contribuyentes: 1 · Commits: 23 · Ramas: 2 · Hace 3 días',
-      commitsCount: 23,
-      branchesCount: 2,
-      updated: 'Hace 3 días',
-      langs: [
-        { type: 'js', width: '80%' },
-        { type: 'css', width: '20%' }
-      ],
-      hasActions: false
-    },
-    {
-      id: 'repo-3',
-      name: 'tutorial-git-sena',
-      privacy: 'Público',
-      description: 'Tutorial de Git para estudiantes SENA',
-      stats: 'Contribuyentes: 5 · Commits: 16 · Ramas: 4 · Hace 1 semana',
-      commitsCount: 16,
-      branchesCount: 4,
-      updated: 'Hace 1 semana',
-      langs: [{ type: 'md', width: '100%' }],
-      hasActions: false
-    },
-    {
-      id: 'repo-4',
-      name: 'api-rest-django',
-      privacy: 'Privado',
-      description: 'API REST completa con Django',
-      stats: 'Contribuyentes: 3 · Commits: 45 · Ramas: 5 · Ayer',
-      commitsCount: 45,
-      branchesCount: 5,
-      updated: 'Ayer',
-      langs: [
-        { type: 'py', width: '75%' },
-        { type: 'htmlc', width: '25%' }
-      ],
-      hasActions: false
-    },
-    {
-      id: 'repo-5',
-      name: 'ejercicios-javascript',
-      privacy: 'Público',
-      description: 'Ejercicios de JavaScript para SENA',
-      stats: 'Contribuyentes: 1 · Commits: 12 · Ramas: 1 · Hace 2 meses',
-      commitsCount: 12,
-      branchesCount: 1,
-      updated: 'Hace 2 meses',
-      langs: [{ type: 'js', width: '100%' }],
-      hasActions: false
-    }
-  ];
+  // 2. EFECTO DE CARGA INICIAL
+  // Se ejecuta una sola vez al montar el componente gracias al arreglo de dependencias vacío []
+  useEffect(() => {
+    cargarRepositorios();
+  }, []);
 
-  const filteredRepos = reposData.filter((repo) => {
+  // 3. FUNCIÓN ASÍNCRONA PARA CONSULTAR EL SERVICIO
+  const cargarRepositorios = async () => {
+    setLoading(true);
+    setStatus({
+      type: 'status-info',
+      message: 'Cargando repositorios desde el servidor...'
+    });
+
+    try {
+      // Petición asíncrona con await al servicio
+      const data = await obtenerRepositorios();
+      setRepos(data);
+      setStatus({
+        type: 'status-success',
+        message: `✓ Se cargaron ${data.length} repositorios correctamente.`
+      });
+    } catch (error) {
+      // Manejo de errores en caso de fallo de red o backend
+      setStatus({
+        type: 'status-error',
+        message: error.message || '✗ Error al consultar los repositorios.'
+      });
+    } finally {
+      // Desactivamos el indicador de carga
+      setLoading(false);
+    }
+  };
+
+  // 4. LÓGICA DE FILTRADO EN MEMORIA
+  // Filtramos la lista cargada según el buscador y la visibilidad sin rehacer peticiones al backend
+  const filteredRepos = repos.filter((repo) => {
     const matchesPrivacy =
       privacyFilter === 'Todos' || repo.privacy === privacyFilter;
     const matchesSearch =
@@ -91,6 +67,7 @@ export default function Repositories() {
 
   return (
 	<section className="space-y-6">
+		{/* Encabezado y acciones principales */}
 		<div className="panel-neo p-6">
 		<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 			<div>
@@ -196,9 +173,10 @@ export default function Repositories() {
 
 			{repo.hasActions && (
 				<div className="flex flex-wrap gap-3 mt-4">
-				<Link className="btn-secondary" to="/historial">Commits</Link>
+				<Link className="btn-secondary" to="/commit" state={{ repoNombre: repo.name, repoId: repo.id }}>Hacer Commit</Link>
+				<Link className="btn-secondary" to="/historial">Ver Commits</Link>
 				<Link className="btn-secondary" to="/ramas">Ramas</Link>
-				<Link className="btn-danger" to="/eliminar-repo">Eliminar</Link>
+				<Link className="btn-danger" to="/eliminar">Eliminar</Link>
 				</div>
 			)}
 			</div>

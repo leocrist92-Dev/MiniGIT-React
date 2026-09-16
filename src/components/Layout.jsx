@@ -5,6 +5,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 export default function Layout() {
   const location = useLocation();
   const isLoginPage = location.pathname === '/' || location.pathname === '/login';
+  const isRegisterPage = location.pathname === '/registro';
 
   return (
     <>
@@ -13,7 +14,7 @@ export default function Layout() {
       <div className="orb orb-c"></div>
 
       <div className="soft-grid shell min-h-screen">
-        {!isLoginPage && (
+        {!isLoginPage && !isRegisterPage && (
           <header className="max-w-7xl mx-auto px-4 md:px-6 pt-5">
             <div className="panel-neo px-5 py-4 flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
               <div className="flex items-center gap-3">
