@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+// 1. Importamos el AuthProvider
+import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 
 import Login from './pages/Login';
@@ -17,24 +19,27 @@ import './assets/theme.css';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          {/*<Route index element={<Repositories />} />*/}
-          <Route index element={<Login />} />
-          <Route path="login" element={<Login />} />
-          <Route path="registro" element={<Registro />} />
-          <Route path="repos" element={<Repositories />} />
-          <Route path="crear-repo" element={<CrearRepositorio />} />
-          <Route path="commit" element={<HacerCommit />} />
-          <Route path="historial" element={<HistorialCommits />} />
-          <Route path="diff" element={<DiffVersiones />} />
-          <Route path="ramas" element={<CrearRamas />} />
-          <Route path="merge" element={<HacerMerge />} />
-          <Route path="eliminar" element={<EliminarRepositorio />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    // 2. Envolvemos toda la aplicación o el Router con AuthProvider
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            {/*<Route index element={<Repositories />} />*/}
+            <Route index element={<Login />} />
+            <Route path="login" element={<Login />} />
+            <Route path="registro" element={<Registro />} />
+            <Route path="repos" element={<Repositories />} />
+            <Route path="crear-repo" element={<CrearRepositorio />} />
+            <Route path="commit" element={<HacerCommit />} />
+            <Route path="historial" element={<HistorialCommits />} />
+            <Route path="diff" element={<DiffVersiones />} />
+            <Route path="ramas" element={<CrearRamas />} />
+            <Route path="merge" element={<HacerMerge />} />
+            <Route path="eliminar" element={<EliminarRepositorio />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

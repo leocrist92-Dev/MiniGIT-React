@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 import { loginUsuario, solicitarRecuperacion } from '../services/authService';
+//import { AuthContext } from '../context/AuthContext';
+// 1. Usamos el Hook defensivo en lugar de useContext directo
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
+  //const { loginSession } = useContext(AuthContext); // Extrae la función del Contexto
+  // 2. Extraemos loginSession de forma segura
+  const { loginSession } = useAuth();
+
   // Estados para el formulario
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +30,7 @@ export default function Login() {
   const [recoverEmail, setRecoverEmail] = useState('usuario@sena.edu.co');
   const [recoverStatus, setRecoverStatus] = useState({
     type: 'status-info',
-    message: 'Se enviará un enlace válido por 24 horas.'
+    msg: 'Se enviará un enlace válido por 24 horas.'
   });
 
   // Efecto que reacciona a la escritura en el formulario
@@ -66,9 +73,10 @@ export default function Login() {
     try {
       // Petición al servicio en lugar de usar setTimeout directo en la vista
       const data = await loginUsuario(username, password);
+      loginSession(data.user, data.token); // Almacena usuario y token globalmente
 
       // Si la promesa se resuelve con éxito:
-      localStorage.setItem('token', data.token); // Guardamos la sesión simulada
+      //localStorage.setItem('token', data.token); // Guardamos la sesión simulada
       setStatus({
         type: 'status-success',
         msg: '✓ Login exitoso. Redirección simulada al panel de repositorios.'	
